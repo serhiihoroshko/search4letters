@@ -1,7 +1,7 @@
 import mysql.connector
 
 
-class UserDatabase:
+class Database:
 
     def __init__(self, config: dict) -> None:
         self.configuration = config

@@ -1,6 +1,7 @@
-from flask import Flask, render_template, request, escape
+from flask import Flask, render_template, request, session
+from database import Database
+from checker import Checker
 from vsearch import search4letters
-from DatabaseContextManager import UserDatabase
 
 app = Flask(__name__)
 
@@ -10,8 +11,20 @@ app.config['dbconfig'] = {'host': '127.0.0.1',
                           'database': 'vsearchlogDB', }
 
 
+@app.route('/login')
+def do_login() -> str:
+    session['logged_in'] = True
+    return 'You are now logged in.'
+
+
+@app.route('/logout')
+def do_logout() -> str:
+    session.pop('logged_in')
+    return 'You are now logged out.'
+
+
 def log_request(req: 'flask_request', res: str) -> None:
-    with UserDatabase(app.config['dbconfig']) as cursor:
+    with Database(app.config['dbconfig']) as cursor:
         _SQL = """INSERT INTO log 
                 (phrase, letters, ip, browser_string, results)
                 values 
@@ -45,8 +58,9 @@ def do_search() -> 'html':
 
 
 @app.route('/viewlog', methods=['GET'])
+@Checker
 def view_the_log() -> 'html':
-    with UserDatabase(app.config['dbconfig']) as cursor:
+    with Database(app.config['dbconfig']) as cursor:
         _SQL = """SELECT phrase, letters, ip, browser_string, results 
                 FROM log"""
         cursor.execute(_SQL)
@@ -57,6 +71,8 @@ def view_the_log() -> 'html':
                            the_row_titles=titles,
                            the_data=contents,)
 
+
+app.secret_key = 'YouWillNeverGuessMySecretKey'
 
 if __name__ == '__main__':
     app.run(debug=True)
