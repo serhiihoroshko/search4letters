@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, session
-from database import Database
+from database import Database, ConnectionError
 from checker import Checker
 from vsearch import search4letters
 
@@ -49,7 +49,10 @@ def do_search() -> 'html':
     letters = request.form['letters']
     title = 'Here are your results:'
     results = str(search4letters(phrase, letters))
-    log_request(request, results)
+    try:
+        log_request(request, results)
+    except Exception as err:
+        print('***** Login failed with this error:', str(err))
     return render_template('results.html',
                            the_phrase=phrase,
                            the_letters=letters,
@@ -60,16 +63,22 @@ def do_search() -> 'html':
 @app.route('/viewlog', methods=['GET'])
 @Checker
 def view_the_log() -> 'html':
-    with Database(app.config['dbconfig']) as cursor:
-        _SQL = """SELECT phrase, letters, ip, browser_string, results 
-                FROM log"""
-        cursor.execute(_SQL)
-        contents = cursor.fetchall()
-    titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
-    return render_template('viewlog.html',
-                           the_title='View Log',
-                           the_row_titles=titles,
-                           the_data=contents,)
+    try:
+        with Database(app.config['dbconfig']) as cursor:
+            _SQL = """SELECT phrase, letters, ip, browser_string, results 
+                    FROM log"""
+            cursor.execute(_SQL)
+            contents = cursor.fetchall()
+        titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results')
+        return render_template('viewlog.html',
+                               the_title='View Log',
+                               the_row_titles=titles,
+                               the_data=contents,)
+    except ConnectionError as err:
+        print('Is your database switched on? Error:', str(err))
+    except Exception as err:
+        print('Something went wrong:', str(err))
+    return 'Error'
 
 
 app.secret_key = 'YouWillNeverGuessMySecretKey'
