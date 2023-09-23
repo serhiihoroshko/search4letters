@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, session
-from database import Database, ConnectionError
+from database import Database, ConnectionError, CredentialsError, SQLError
 from checker import Checker
 from vsearch import search4letters
 
@@ -76,6 +76,10 @@ def view_the_log() -> 'html':
                                the_data=contents,)
     except ConnectionError as err:
         print('Is your database switched on? Error:', str(err))
+    except CredentialsError as err:
+        print('User-id/Password issues. Error:', str(err))
+    except SQLError as err:
+        print('Is your query correct? Error:', str(err))
     except Exception as err:
         print('Something went wrong:', str(err))
     return 'Error'
