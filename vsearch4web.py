@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, session
+from flask import copy_current_request_context
 from database import Database, ConnectionError, CredentialsError, SQLError
 from checker import Checker
 from vsearch import search4letters
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -23,19 +25,6 @@ def do_logout() -> str:
     return 'You are now logged out.'
 
 
-def log_request(req: 'flask_request', res: str) -> None:
-    with Database(app.config['dbconfig']) as cursor:
-        _SQL = """INSERT INTO log 
-                (phrase, letters, ip, browser_string, results)
-                values 
-                (%s, %s, %s, %s, %s)"""
-        cursor.execute(_SQL, (req.form['phrase'],
-                              req.form['letters'],
-                              req.remote_addr,
-                              req.headers.get('User-Agent'),
-                              res, ))
-
-
 @app.route('/', methods=['GET'])
 @app.route('/entry', methods=['GET'])
 def entry_page() -> 'html':
@@ -45,12 +34,27 @@ def entry_page() -> 'html':
 
 @app.route('/search4', methods=['POST'])
 def do_search() -> 'html':
+
+    @copy_current_request_context
+    def log_request(req: 'flask_request', res: str) -> None:
+        with Database(app.config['dbconfig']) as cursor:
+            _SQL = """INSERT INTO log 
+                    (phrase, letters, ip, browser_string, results)
+                    values 
+                    (%s, %s, %s, %s, %s)"""
+            cursor.execute(_SQL, (req.form['phrase'],
+                                  req.form['letters'],
+                                  req.remote_addr,
+                                  req.headers.get('User-Agent'),
+                                  res, ))
+
     phrase = request.form['phrase']
     letters = request.form['letters']
     title = 'Here are your results:'
     results = str(search4letters(phrase, letters))
     try:
-        log_request(request, results)
+        t = Thread(target=log_request, args=(request, results))
+        t.start()
     except Exception as err:
         print('***** Login failed with this error:', str(err))
     return render_template('results.html',

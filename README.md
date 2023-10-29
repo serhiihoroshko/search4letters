@@ -1,5 +1,6 @@
 1. Create and activate virtual environments [venv](https://docs.python.org/3/library/venv.html)
 2. Install Flask `pip istall flask`
+   1. if use MySQL: `pip install mysql-connector-python`
 3. Install MariaDB [MariaDB Server](https://mariadb.org/download/)
 4. Install MariaDB Connector [Python Connect](https://mariadb.com/docs/skysql-previous-release/connect/programming-languages/python/install/)
 5. Connect to the MariaDB and create database vsearchlogDB: `CREATE DATABASE vsearchlogDB;`
@@ -17,3 +18,4 @@ browser_string varchar(256) NOT NULL,
 results varchar(64) NOT NULL);
 ```
 9. Check created table: `describe log;`
+10. Display data in log table: `SELECT * FROM vsearchlogdb.log;`
